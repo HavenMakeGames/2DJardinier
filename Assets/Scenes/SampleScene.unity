@@ -367,8 +367,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bfcb247aacb5434fa2fbf8753e09af7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  speed: 5
-  jumpForce: 1
+  speed: 8
+  jumpForce: 4
   gravity: 5
   isGrounded: 1
   rb: {fileID: 0}
@@ -387,7 +387,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 4
+  m_GravityScale: 8
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -477,7 +477,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3879b823e312274a90bc30632c8e46f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LianaAbility
-  maxLianaLenght: 8
+  maxLianaLenght: 10
+  cooldownTime: 0
   mask:
     serializedVersion: 2
     m_Bits: 8
@@ -725,7 +726,7 @@ Camera:
   far clip plane: 1000
   field of view: 50
   orthographic: 1
-  orthographic size: 8
+  orthographic size: 10
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2

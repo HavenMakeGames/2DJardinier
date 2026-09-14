@@ -33,7 +33,9 @@ public class LianaAbility : MonoBehaviour
     private PlayerMovement playerMovement;
     private Mouse mouse;
     public float maxLianaLenght;
+    public float cooldownTime;
     public LayerMask mask;
+
 
     [Header("Force")]
     private GameObject player;
@@ -48,27 +50,30 @@ public class LianaAbility : MonoBehaviour
         canUseAbility = true;
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
-
-        if (grapplingInput.WasPressedThisFrame())
+        if (grapplingInput.WasPressedThisFrame() && canUseAbility == true)
         {
+            canUseAbility = false;
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(mouse.position.ReadValue());
             Vector2 playerPos = player.transform.position;
-            Vector2 direction = (mousePos - playerPos).normalized ;
+            Vector2 direction = (mousePos - playerPos).normalized;
 
-            RaycastHit2D hit = Physics2D.Raycast(playerPos, direction , maxLianaLenght , mask);
-            Debug.DrawRay(playerPos, hit.point - playerPos , Color.red, 2f);
+            RaycastHit2D hit = Physics2D.Raycast(playerPos, direction, maxLianaLenght, mask);
+            Debug.DrawRay(playerPos, hit.point - playerPos, Color.red, 2f);
             Debug.Log(direction);
 
             if (hit.collider != null)
             {
                 Debug.Log("Le raycast a touché" + hit.collider.name);
-                Vector2 impulsion = (hit.point - playerPos).normalized ;
-                rb.AddForce(impulsion * 250);
-                StartCoroutine(Cooldown());
-                
+                Vector2 impulsion = (hit.point - playerPos).normalized;
+                rb.AddForce(impulsion * 1200);
+           
             }
+            
+            
+            StartCoroutine(Cooldown());
+            
 
         }
     }
@@ -77,7 +82,8 @@ public class LianaAbility : MonoBehaviour
 
     IEnumerator Cooldown()
     {
-        yield return new WaitForSeconds(2);
+        yield return new WaitForSecondsRealtime(cooldownTime);
+        canUseAbility = true;
     }
 }
 
