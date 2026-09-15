@@ -371,7 +371,7 @@ MonoBehaviour:
   jumpForce: 4
   gravity: 5
   isGrounded: 1
-  rb: {fileID: 0}
+  rb: {fileID: 109574929}
 --- !u!50 &109574929
 Rigidbody2D:
   serializedVersion: 5
@@ -478,7 +478,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LianaAbility
   maxLianaLenght: 10
-  cooldownTime: 0
+  cooldownTime: 1.5
   mask:
     serializedVersion: 2
     m_Bits: 8
