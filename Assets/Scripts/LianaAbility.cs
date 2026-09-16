@@ -26,7 +26,6 @@ public class LianaAbility : MonoBehaviour
    Ajouter une force dans la direction 
    */
 
-
     [Header("Grappling ")]
     InputAction grapplingInput;
     private bool canUseAbility; 
@@ -35,7 +34,8 @@ public class LianaAbility : MonoBehaviour
     public float maxLianaLenght;
     public float cooldownTime;
     public LayerMask mask;
-
+    public Vector2 raycastOffset ;
+    public float grapPower;
 
     [Header("Force")]
     private GameObject player;
@@ -60,29 +60,34 @@ public class LianaAbility : MonoBehaviour
             Vector2 direction = (mousePos - playerPos).normalized;
 
             RaycastHit2D hit = Physics2D.Raycast(playerPos, direction, maxLianaLenght, mask);
-            Debug.DrawRay(playerPos, hit.point - playerPos, Color.red, 2f);
+            Debug.DrawRay(playerPos + raycastOffset, direction * 10, Color.green , 2f);
             Debug.Log(direction);
 
             if (hit.collider != null)
             {
-                Debug.Log("Le raycast a touché" + hit.collider.name);
-                Vector2 impulsion = (hit.point - playerPos).normalized;
-                rb.AddForce(impulsion * 1200);
-           
+                rb.simulated = false;
+                StartCoroutine(ImobilisationAnimation(hit , playerPos , grapPower));
             }
             
-            StartCoroutine(Cooldown());
-            
-
+            StartCoroutine(Cooldown());  
         }
     }
-
-
 
     IEnumerator Cooldown()
     {
         yield return new WaitForSecondsRealtime(cooldownTime);
         canUseAbility = true;
+    }
+
+    IEnumerator ImobilisationAnimation(RaycastHit2D hit, Vector2 playerPos , float grapPower)
+    {
+
+        yield return new WaitForSecondsRealtime(0.25f);
+        rb.simulated = true;
+        Debug.Log("Le raycast a touché" + hit.collider.name);
+        Vector2 impulsion = (hit.point - playerPos).normalized;
+        rb.AddRelativeForce(impulsion * grapPower * 100);
+
     }
 }
 

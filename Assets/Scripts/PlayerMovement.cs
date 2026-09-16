@@ -77,7 +77,7 @@ public class PlayerMovement : MonoBehaviour
         if ( jumpValue == true && GetIsGrounded())
         {
             isGrounded = false;
-            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+            rb.AddRelativeForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
         
         }
     }
