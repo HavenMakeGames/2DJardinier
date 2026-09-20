@@ -10,10 +10,14 @@ public class PlayerMovement : MonoBehaviour
 {
     // Les infos qui regle comment le perso se deplace 
     [Header("Statistiques")]
-    public float speed = 5;
-    public float jumpForce = 5;
-    public bool isGrounded = true;
+    public float speed = 5f;
+    public float jumpForce = 5f;
+    public float health = 100f;
+    public float invicibilityTime;
+    private bool canTakeDamage = true;
     private Vector2 direction;
+    private GameObject latestPoint;
+
 
     // Les Inputs des Actions 
     [Header("Actions")]
@@ -31,6 +35,10 @@ public class PlayerMovement : MonoBehaviour
     private string sertARien;
 
 
+
+    //
+    //Toutes les fonctions qui s'executent dans le jeu
+    //
     private void Start()
     {
         // Lie l'input system avec les variables du script
@@ -40,10 +48,10 @@ public class PlayerMovement : MonoBehaviour
         // Lie les components avec les variables du script
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
-        player = GetComponent<GameObject>();
+        player = gameObject;
     }
 
-    private void Update()
+private void Update()
     {
         // Lie les valeurs de déplacement . Ex: si le joueur appuie sur A ou D ou bien Espace 
         Vector2 moveValue = move.ReadValue<Vector2>();
@@ -54,6 +62,31 @@ public class PlayerMovement : MonoBehaviour
         JumpPlayer(jumpValue);
     }
 
+    public void OnCollisionEnter2D(Collision2D collision)
+    {
+        Debug.Log("hit");
+        if (collision.collider.tag == "Enemy")
+        {
+            Debug.Log("Enemie touché");
+            TakeDamage();
+        }
+
+    }
+
+    public void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.tag == "Spawn Point")
+        {
+            latestPoint = collision.gameObject;
+            Debug.Log("Nouveau point de réapparition " + latestPoint.name); 
+        }
+    }
+
+
+
+    //
+    //Toutes les fonctions qui ne s'executent pas dans le jeu mais dans une fonction 
+    //
     private void MovePlayer(Vector2 direction)
     {
         //Ajoute une force dans la direction du deplacement (A ou D) 
@@ -72,12 +105,46 @@ public class PlayerMovement : MonoBehaviour
         // Si le joueur appuie sur Espace et est au sol 
         if (jumpValue == true && GetIsGrounded())
         {
-            isGrounded = false;
             // Ajoute une force vers le haut pour faire sauter le perso 
             // La force du saut / hauteur est fonction de la variable jumpForce
             rb.AddRelativeForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
 
         }
+    }
+
+    IEnumerator DamageDelayTime(float invicibilityTime)
+    {
+        yield return new WaitForSecondsRealtime(invicibilityTime); // Le temps entre lequel le joueur ne peut pas se faire taper après un coup
+    }
+
+    public void CanTakeDamage() // Utilise la coroutine pour que le joueur soit intangible pendant ce temps
+    {
+        canTakeDamage = false;
+        StartCoroutine(DamageDelayTime(invicibilityTime));
+        canTakeDamage = true;
+    }
+
+    public void TakeDamage()
+    {
+        if (canTakeDamage == true) // Si le joueur n'est pas intangible 
+        {
+            health = health - 10f; // Retire la vie du joueur 
+            Debug.Log("Vous avez " + health);
+            if (health <= 0) // Si la vie du joueur arrive en dessous ou à 0 
+            {
+                Die(); // Meurs  
+            }
+            CanTakeDamage(); // Execute l'intangebilite 
+        }
+    }
+
+    public void Die()
+    {
+        if (latestPoint != null)
+        {
+            player.transform.position = latestPoint.transform.position;
+        }
+
     }
 
 }
