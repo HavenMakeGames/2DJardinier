@@ -89,10 +89,10 @@ public class LianaAbility : MonoBehaviour
     {
 
         yield return new WaitForSecondsRealtime(0.25f); // Imobilise le perso dans les airs 
+        rb.linearVelocity = Vector2.zero;
         rb.simulated = true;
-        Debug.Log("Le raycast a touché" + hit.collider.name); 
         Vector2 impulsion = (hit.point - playerPos).normalized; // Calcule la puissance du saut 
-        rb.AddRelativeForce(impulsion * grapPower * 100); // Ajuste et effectue le saut selon la variable grapPower
+        rb.AddForce(impulsion * grapPower * 100); // Ajuste et effectue le saut selon la variable grapPower
 
     }
 
