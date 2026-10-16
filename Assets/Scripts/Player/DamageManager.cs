@@ -23,21 +23,19 @@ public class DamageManager : MonoBehaviour
 
     [Header("Components")]
     public GameObject character;
+    private SpriteRenderer sr;
 
 
     private void Start()
     {
         character = gameObject;
         SetMaxHealth(health);  // On met max vie le perso (joueur ou npc)
+        sr = GetComponent<SpriteRenderer>();
     }
 
     public void OnCollisionEnter2D(Collision2D collision) // Quand l'individu rentre en contact avec un individu qui peut lui mettre des dégats , il prend des dégats
     {
         if (collision.collider.tag == "Enemy" && character.tag == "Player")
-        {
-            TakeDamage();
-        }
-        else if (collision.collider.tag == "Player" && character.tag == "Enemy")
         {
             TakeDamage();
         }
@@ -57,17 +55,10 @@ public class DamageManager : MonoBehaviour
         }
     }
 
-
-    public void CanTakeDamage() // Utilise la coroutine pour que le joueur soit intangible pendant ce temps
+    private void RenderLiana()
     {
-        canTakeDamage = false;
-        StartCoroutine(DamageDelayTime(invicibilityTime));
-        canTakeDamage = true;
+
     }
-
-
-
-
 
     private void TakeDamage()
     {
@@ -80,7 +71,7 @@ public class DamageManager : MonoBehaviour
                 Die(); // Meurs  
             }
             healthSlider.value = health;
-            CanTakeDamage(); // Execute l'intangebilite 
+            StartCoroutine(DamageDelayTime(invicibilityTime)); // Execute l'intangebilite 
 
         }
     }
@@ -94,7 +85,10 @@ public class DamageManager : MonoBehaviour
         }
         else if (latestPoint == null) // Si le character n'est pas le joueur , il ne peut donc pas avoir de point de spawn donc il meure sans réapparaitre
         {
-            Destroy(character.transform);
+            if (character.tag != "Player")
+            {
+                Destroy(character.transform);
+            }
         }
 
         health = maxHealth;
@@ -109,7 +103,9 @@ public class DamageManager : MonoBehaviour
 
     IEnumerator DamageDelayTime(float invicibilityTime)
     {
+        canTakeDamage = false;
         yield return new WaitForSecondsRealtime(invicibilityTime); // Le temps entre lequel le joueur ne peut pas se faire taper après un coup
+        canTakeDamage = true;
     }
 
 

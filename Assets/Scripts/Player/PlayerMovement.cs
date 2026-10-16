@@ -77,8 +77,6 @@ public class PlayerMovement : MonoBehaviour
         player = gameObject;
         isFacingRight = true;
 
-
-        
     }
 
     private void Update()

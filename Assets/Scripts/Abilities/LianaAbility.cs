@@ -34,7 +34,9 @@ public class LianaAbility : MonoBehaviour
     // Les components qui vont faire bouger le perso 
     [Header("Component")]
     private GameObject player;
-    private Rigidbody2D rb;
+    public Rigidbody2D rb;
+    private SpriteRenderer sr;
+
 
     private void Start()
     { 
@@ -43,6 +45,7 @@ public class LianaAbility : MonoBehaviour
         // Connecte les components avec les variables 
         player = gameObject;  
         rb = gameObject.GetComponent<Rigidbody2D>();
+  
 
         grapplingInput = InputSystem.actions.FindAction("Liane Ability"); // Lie l'input system avec la variable Input
         canUseAbility = true; //Sert a reguler l'utilisation de la capacité 
@@ -96,5 +99,11 @@ public class LianaAbility : MonoBehaviour
 
     }
 
+
+    private void RenderLiana(Vector2 direction)
+    {
+        float distance = direction.magnitude;
+
+    }
 }
 
