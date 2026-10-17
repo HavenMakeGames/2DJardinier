@@ -30,6 +30,9 @@ public class PlayerMovement : MonoBehaviour
     private bool isAccroched;
     private bool canMove = true;
     private bool canJump = true;
+
+
+
     // Les Inputs des Actions 
     [Header("Actions")]
     InputAction move;
@@ -84,10 +87,14 @@ public class PlayerMovement : MonoBehaviour
         // Lie les valeurs de déplacement . Ex: si le joueur appuie sur A ou D ou bien Espace 
 
         moveValue = move.ReadValue<Vector2>();
-        movingValue = moveValue.x;
         jumpValue = jump.IsPressed();
 
         isGrounded = Physics2D.OverlapArea(groundCheckL.transform.position, groundCheckR.transform.position,jumpMask); // Regarde si la zone créée entre en contact avec le sol , si oui renvoie true
+        if (isGrounded) 
+        { 
+            canDetectWall = true;
+            isJumping = false;
+        }
         if (canDetectWall) // si on autorise le joueur a aller contre un mur 
         {
             isAgainstWall = Physics2D.OverlapArea(wallCheckL.transform.position, wallCheckR.transform.position, wallMask); // Regarde si la zone crée touche un mur , qu'il soit à droite ou a gauche
@@ -98,7 +105,7 @@ public class PlayerMovement : MonoBehaviour
     private void FixedUpdate()
     {
         // Appelle les fonctions pour faire bouger le perso 
-        MovePlayer(moveValue, movingValue);
+        MovePlayer(moveValue);
         JumpPlayer(jumpValue); 
     }
 
@@ -111,22 +118,38 @@ public class PlayerMovement : MonoBehaviour
 
 
 
-    private void MovePlayer(Vector2 direction, float movingValue )
+    private void MovePlayer(Vector2 direction)
     {
         //Ajoute une force dans la direction du deplacement (A ou D) 
         // La vitesse dépend de la variable publique speed
-        rb.linearVelocity = new Vector2(direction.x * speed , rb.linearVelocity.y);
-        if (movingValue > 0)
+        if (move.IsPressed() && canMove)
         {
-            isFacingRight = true;
+            rb.linearVelocity = new Vector2(direction.x * speed, rb.linearVelocity.y);
+            if (rb.linearVelocity.x > 0)
+            {
+                isFacingRight = true;
+            }
+            else if (rb.linearVelocity.x < 0)
+            {
+                isFacingRight = false;
+            }
         }
-        else if (movingValue < 0)
-        {
-            isFacingRight = false;
-        }
+
     }
 
-
+    float CheckWall()
+    {
+        RaycastHit2D left = Physics2D.Raycast(player.transform.position, Vector2.left, 3f, wallMask);
+        if (left.collider != null )
+        {
+            return 1;
+        }
+        else if(left.collider == null)
+        {
+            return -1;
+        }
+        return 0f;
+    }
 
 
 
@@ -138,9 +161,10 @@ public class PlayerMovement : MonoBehaviour
                 // Ajoute une force vers le haut pour faire sauter le perso 
                 // La force du saut / hauteur est fonction de la variable jumpForce
                 isJumping = true;
-                rb.linearVelocityY = 0f;
+                rb.linearVelocityY =0f;
                 rb.AddForce(new Vector2(0f, jumpForce * 100));
             }
+            
             else if (isAgainstWall && !isGrounded ) // Si le joueur touche un mur et n'est pas au sol , on active la capacité walljump
             {
                 isAccroched = true;
@@ -152,42 +176,38 @@ public class PlayerMovement : MonoBehaviour
 
                 if (jumpValue) // Si il saute en étant sur le mur
                 {
-                    StartCoroutine(WallJump()); // saute en étant sur le mur
+                    WallJump(); // saute en étant sur le mur
                 }
             }
             else if (!isAgainstWall) // Si le joueur n'est plu contre un mur le refaire tomber a la meme gravité que la normal
             {
                 rb.gravityScale = gravity;
             }
-
-        // Si le joueur appuie sur Espace et est au sol 
-        isJumping = false;
     }
 
-
-
-
-
-    IEnumerator DamageDelayTime(float invicibilityTime)
+    private void WallJump()
     {
-        yield return new WaitForSecondsRealtime(invicibilityTime); // Le temps entre lequel le joueur ne peut pas se faire taper après un coup
-    }
+        float wallSide = CheckWall();
 
-
-    
-
-    IEnumerator WallJump()
-    {
-        
-        rb.AddForce(new Vector2(0f, jumpForce * 100)); // Ajoute la force nécessaire au saut
-        rb.gravityScale = gravity; // remet la gravité standard
-        // Fais en sorte que le joueur soit concideré comme entrain de sauter et plu contre un mur pour pas qu'il bug
         isJumping = true;
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.gravityScale = gravity; // remet la gravité standard
+        isGrounded = false;
+
+        rb.AddForce(new Vector2(50f* jumpForce * wallSide, jumpForce * 100f));
+
+        // Fais en sorte que le joueur soit concideré comme entrain de sauter et plu contre un mur pour pas qu'il bug
         isAgainstWall = false;
         isAccroched = false;
+        StartCoroutine(StopWallJump());
+    }
+    IEnumerator StopWallJump()
+    {
         canDetectWall = false;
+        canMove = false;
         yield return new WaitForSeconds(0.2f); // Un cooldown pour pas que le joueur se raccroche instantanement 
         canDetectWall = true;
+        canMove = true;
     }
-
 }

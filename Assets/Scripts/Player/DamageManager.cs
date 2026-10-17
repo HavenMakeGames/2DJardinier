@@ -19,10 +19,11 @@ public class DamageManager : MonoBehaviour
     public Slider healthSlider;
     private GameObject latestPoint;
     private HashSet<bool> effects = new HashSet<bool> { };
+    public float repulseForce;
 
 
     [Header("Components")]
-    public GameObject character;
+    private GameObject character;
     private SpriteRenderer sr;
 
 
@@ -37,12 +38,11 @@ public class DamageManager : MonoBehaviour
     {
         if (collision.collider.tag == "Enemy" && character.tag == "Player")
         {
+            GetPushedAway(character, collision.gameObject);
             TakeDamage();
         }
     }
     
-
-
     public void OnTriggerEnter2D(Collider2D collision) // Quand le joueur touche un point de spawn , il l'enregistre
     {
         if (collision.gameObject.tag == "Spawn Point")
@@ -50,14 +50,8 @@ public class DamageManager : MonoBehaviour
             if (character.tag== "Player")
             {
                 latestPoint = collision.gameObject;
-                Debug.Log("Nouveau point de réapparition " + latestPoint.name);
             }
         }
-    }
-
-    private void RenderLiana()
-    {
-
     }
 
     private void TakeDamage()
@@ -75,7 +69,6 @@ public class DamageManager : MonoBehaviour
 
         }
     }
-
 
     public void Die()
     {
@@ -109,4 +102,12 @@ public class DamageManager : MonoBehaviour
     }
 
 
+    void GetPushedAway(GameObject pushed , GameObject from)
+    {
+        Rigidbody2D pushedRB = pushed.GetComponent<Rigidbody2D>();
+        Vector2 direction = pushed.transform.position - from.transform.position;
+        pushedRB.linearVelocity = Vector2.zero;
+        pushedRB.AddForce(direction * repulseForce);
+        Debug.Log("est poussé");
+    }
 }
