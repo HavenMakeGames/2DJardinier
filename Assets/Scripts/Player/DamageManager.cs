@@ -25,11 +25,13 @@ public class DamageManager : MonoBehaviour
     [Header("Components")]
     private GameObject character;
     private SpriteRenderer sr;
+    private PlayerMovement pmouv;
 
 
     private void Start()
     {
         character = gameObject;
+        pmouv = gameObject.GetComponent<PlayerMovement>();
         SetMaxHealth(health);  // On met max vie le perso (joueur ou npc)
         sr = GetComponent<SpriteRenderer>();
     }
@@ -38,7 +40,7 @@ public class DamageManager : MonoBehaviour
     {
         if (collision.collider.tag == "Enemy" && character.tag == "Player")
         {
-            GetPushedAway(character, collision.gameObject);
+            GetPushedAway(character, collision.gameObject,repulseForce);
             TakeDamage();
         }
     }
@@ -49,7 +51,7 @@ public class DamageManager : MonoBehaviour
         {
             if (character.tag== "Player")
             {
-                latestPoint = collision.gameObject;
+                latestPoint = collision.gameObject; // On enregistre le point de spawn
             }
         }
     }
@@ -59,7 +61,6 @@ public class DamageManager : MonoBehaviour
         if (canTakeDamage == true) // Si le joueur n'est pas intangible 
         {
             health = health - 10f; // Retire la vie du joueur 
-            Debug.Log("Vous avez " + health);
             if (health <= 0) // Si la vie du joueur arrive en dessous ou à 0 
             {
                 Die(); // Meurs  
@@ -80,7 +81,7 @@ public class DamageManager : MonoBehaviour
         {
             if (character.tag != "Player")
             {
-                Destroy(character.transform);
+                Destroy(character);
             }
         }
 
@@ -102,12 +103,42 @@ public class DamageManager : MonoBehaviour
     }
 
 
-    void GetPushedAway(GameObject pushed , GameObject from)
+    public void GetPushedAway(GameObject pushed /*l'individu poussé*/, GameObject from/*L'individu qui pousse*/ , float repulseForce/*La force du knockbacj*/) 
+        // On fait le knockback quand on prend un dégat
     {
-        Rigidbody2D pushedRB = pushed.GetComponent<Rigidbody2D>();
-        Vector2 direction = pushed.transform.position - from.transform.position;
-        pushedRB.linearVelocity = Vector2.zero;
-        pushedRB.AddForce(direction * repulseForce);
-        Debug.Log("est poussé");
+        Rigidbody2D pushedRB = pushed.GetComponent<Rigidbody2D>(); // On prend le rigidbody du poussé
+        Vector2 direction = pushed.transform.position - from.transform.position; // On regarde la direction dans laquelle le poussé doit etre pousser 
+        pushedRB.linearVelocity = Vector2.zero; //On imobilise pour eviter les envols démesurés
+        float sens = 1;
+        if (direction.x < 0) // On regarde le sens dans lequel le poussé doit etre pousser
+        {
+            sens = -1; // gauche
+        }
+        else if(direction.x > 0)
+        {
+            sens = 1; // droite
+        }
+
+        if(direction.x < 1 && direction.x > -1) // dans les airs
+        {
+            // On le pousse en diagonal , ajusté selon la situation du poussé
+            pushedRB.AddForceX( sens * repulseForce * 100);
+            pushedRB.AddForceY(direction.y * repulseForce * 100 ); 
+        }
+
+        else // au sol
+        {
+            // On le pousse en diagonal , ajusté selon la situation du poussé
+            pushedRB.AddForceX(direction.x * repulseForce * 100);
+            pushedRB.AddForceY( repulseForce * 100);
+        }
+        StartCoroutine(littleStunOnHit()); // On empeche le poussé de bouger quand il est hit pour rendre punitif la prise de dégats
+    }
+
+    IEnumerator littleStunOnHit()
+    {
+        pmouv.canMove = false;
+        yield return new WaitForSeconds(0.5f);
+        pmouv.canMove = true;
     }
 }

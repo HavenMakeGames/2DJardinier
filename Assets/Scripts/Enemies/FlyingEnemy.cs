@@ -6,13 +6,14 @@ using UnityEditor.U2D.Sprites;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
+using UnityEngine.TextCore.Text;
 
 public class FlyingEnemy : MonoBehaviour
 {
     [Header("Behaviour")]
-    public bool followPoints;
+    public bool followPoints; // Mode de l'ennemi
     public GameObject[] points;
-    public bool stayStill;
+    public bool stayStill; // Mode de l'ennemi
     private Vector2 startPos;
 
     [Header("Stats")]
@@ -27,6 +28,8 @@ public class FlyingEnemy : MonoBehaviour
     public float cooldownStunt;
     public float slowingSpeed;
     private bool canMove = true;
+    private bool playerInLos;
+    public float repulseForce;
 
     [Header("Components")]
     private GameObject player;
@@ -42,87 +45,121 @@ public class FlyingEnemy : MonoBehaviour
         enemy = gameObject;
         rb = enemy.GetComponent<Rigidbody2D>();
         sr = enemy.GetComponent<SpriteRenderer>();
-        startPos = enemy.transform.position;
+        startPos = enemy.transform.position;// On enregistre la position ou le volant est au debut 
     }
+
     private void Update()
     {
         GetSens();
         Move();
     }
-    private void OnCollisionEnter2D(Collision2D collision)
+
+    private void OnCollisionEnter2D(Collision2D collision) 
     {
-        if (collision.collider.tag == "Ground" || collision.collider.tag == "Wall" || collision.collider.tag == "Plantable")
+        if (collision.collider.tag == "Ground" || collision.collider.tag == "Wall" || collision.collider.tag == "Plantable") 
         {
+            // Quand le volant touche un mur il se cogne et est immobilisé
             rb.linearVelocity = Vector2.zero;
         }
+        else if (collision.collider.tag == "Player")
+        {
+            // Si il touche le joueur on pousse le volant 
+            Vector2 direction = rb.transform.position - collision.gameObject.transform.position;
+            rb.linearVelocity = Vector2.zero; // On evite la démesure de force en mettant à zero
+            rb.AddForce(direction * repulseForce); // On pousse
+        }
     }
+
+    
     private void Move()
     {
+        playerInLos = GetLOS(); // On regarde si l'ennemi voit le joueur
         if (canMove)
         {
-            if (followPoints)
+            // Mode : On fait bouger le volant comme si il fait une ronde / patrouille pour le rendre vivant 
+            if (followPoints) // On regarde le mode de l'ennemi
             {
-                if (GetLOS() == false && knowPlayerPos == false)
+                if (playerInLos == false && knowPlayerPos == false) // Si le volant ne sait pas ou est le joueur 
                 {
-                    Vector2 direction = points[currentPoints].transform.position - enemy.transform.position;
-                    rb.linearVelocity = direction * speed / 2;
-                    currentPoints += 1;
-                    if (currentPoints >= points.Length)
+                    Vector2 direction = points[currentPoints].transform.position - enemy.transform.position; // On prend la direction de l'ennemi vers le prochain point
+                    rb.linearVelocity = direction * speed / 2; // On le fait avancer vers le point 
+                    if (points[currentPoints].transform.position == enemy.transform.position) // Quand le volant a atteint le point on pass au suivant 
+                    {
+                        currentPoints += 1;
+                    }
+                    if (currentPoints >= points.Length) // On reinitialise quand le tour est fini
                     {
                         currentPoints = 0;
                     }
                 }
-                else if (GetLOS() == true || knowPlayerPos == true)
+                else if (playerInLos == true || knowPlayerPos == true) // si le joueur sait ou est le joueur
                 {
-                    StartCoroutine(lossLOSOnPLayer());
-                    Vector2 direction = player.transform.position - enemy.transform.position;
-                    rb.linearVelocity = direction * speed;
-                    int i = Random.Range(0, 100);
-                    if (i < 10)
+                    StartCoroutine(lossLOSOnPLayer());// On lui permet de se rappeler de ou le joueur est si il le voit , il l'oublie après 5 sec
+                    Vector2 direction = player.transform.position - enemy.transform.position; // On regarde la direction vers le joueur
+                    rb.linearVelocity = direction * speed; // Le volant avance vers le joueur
+                    int i = Random.Range(0, 100); // On choisi aléatoirement si le volant dash 
+                    if (i < 5) // Si il a été choisi qu'il dash
                     {
-                        if (canDash)
+                        if (direction.magnitude <= 10f) // Si le volant est à une bonne distance pour dash
                         {
-                            StartCoroutine(Dash());
-                        }
-                    }
-                    if (enemy.transform.position.y < player.transform.position.y + 5f) 
-                    {
-                        rb.AddRelativeForceY(speed);
-                    }
-                    else { rb.linearVelocityY = 0f; }
-                }
-            }
-            else if (stayStill)
-            {
-                Vector2 currentPos = player.transform.position;
-                while (currentPos != startPos && GetLOS() == false && knowPlayerPos == false)
-                {
-                    rb.linearVelocity = Vector2.zero;
-                    Vector2 direction = startPos - currentPos;
-                    rb.linearVelocity = direction * speed;
-                    Debug.Log("Va a origine" +"origine :" + startPos + "Current :" + currentPos);
-                }
-                if (GetLOS() == true || knowPlayerPos == true)
-                {
-                    StartCoroutine(lossLOSOnPLayer());
-                    Vector2 direction = player.transform.position - enemy.transform.position;
-                    rb.linearVelocity = direction * speed;
-                    int i = Random.Range(0, 100);
-                    if (i < 10)
-                    {
-                        if (direction.magnitude <= 7f)
-                        {
-                            if (canDash)
+                            if (canDash) // et qu'il peut dash
                             {
-                                StartCoroutine(Dash());
+                                StartCoroutine(Dash()); // Il dash
                             }
                         }
                     }
-                    if (enemy.transform.position.y < player.transform.position.y + 5f)
+                    if (enemy.transform.position.y < player.transform.position.y + 6f) // Si le volant n'est pas au dessus du joueur
                     {
-                        rb.AddRelativeForceY(speed);
+                        rb.AddRelativeForceY(speed); // On le fait monter
                     }
-                    else { rb.linearVelocityY = 0f; }
+                    else if (enemy.transform.position.y > player.transform.position.y + 6f)// Si le volant est au dessus de sa position 
+                    {
+                        rb.AddForceY(-speed); // On le fait descendre
+                    }
+
+                    else { rb.linearVelocityY = 0f; } // sinon il avance en ligne droite au dessus du joueur
+                }
+            }
+
+            // Mode : Le volant est immobile 
+            else if (stayStill) // On regarde le mode de l'ennemi
+            {
+                Vector2 currentPos = new Vector2(enemy.transform.position.x, enemy.transform.position.y); // On prend la position actuelle du volant
+                if (currentPos != startPos && playerInLos == false && knowPlayerPos == false) // Si le volant n'est pas à sa position de départ et qu'il ne voit pas le joueur
+                {
+                    Vector2 direction = new Vector2(startPos.x - currentPos.x , startPos.y - currentPos.y); // on regarde la direction vers son point d'origine
+                    rb.linearVelocity = direction * speed; // Il va vers ce point
+                }
+                else if (currentPos == startPos && playerInLos == false && knowPlayerPos == false) 
+                {
+                    rb.linearVelocity = Vector2.zero; // Une fois qu'il atteint le point , il s'arrete 
+                }
+                else if (playerInLos == true || knowPlayerPos == true) // Si il sait ou est le joueur
+                {
+                    StartCoroutine(lossLOSOnPLayer());// On lui permet de se rappeler de ou le joueur est si il le voit , il l'oublie après 5 sec
+                    Vector2 direction = player.transform.position - enemy.transform.position; // On regarde la direction vers le joueur
+                    rb.linearVelocity = direction * speed; // On le fait avancer vers le joueur
+                    int i = Random.Range(0, 100); // On choisit si il dash
+                    if (i < 5) // si il dash
+                    {
+                        if (direction.magnitude <= 10f) // Si le volant est à une bonne distance pour dash
+                        {
+                            if (canDash) // et qu'il peut dash
+                            {
+                                StartCoroutine(Dash()); // Il dash
+                            }
+                        }
+                    }
+                    if (enemy.transform.position.y < player.transform.position.y + 6f)  // Si le volant est en dessous de sa position 
+                    {
+                        rb.AddRelativeForceY(speed); // On le fait monter
+                    }
+                    else if (enemy.transform.position.y > player.transform.position.y + 6f)// Si le volant est au dessus de sa position 
+                    {
+                        rb.AddForceY(-speed); // On le fait descendre
+                    }
+
+                    else { rb.linearVelocityY = 0f; } // On le fait bouger en ligne droite 
                 }
             }
         }
@@ -179,16 +216,15 @@ public class FlyingEnemy : MonoBehaviour
 
     IEnumerator Dash()
     {
-        Debug.Log("Dash");
         canMove = false;
         canDash = false;
-        Vector2 direction = player.transform.position - enemy.transform.position;
+        Vector2 direction = player.transform.position - enemy.transform.position;// On prend la direction vers le joueur
         rb.linearVelocity = Vector2.zero;
-        yield return new WaitForSeconds(1f);
-        rb.AddForce(direction * dashPower * 10);
-        yield return new WaitForSeconds(1f);
-        rb.linearVelocity = Vector2.zero;
-        yield return new WaitForSeconds(cooldownStunt);
+        yield return new WaitForSeconds(1f);// On l'imobilise pour faire comme si le volant charge le dash
+        rb.AddForce(direction * dashPower * 10);// il dash
+        yield return new WaitForSeconds(1f);// On le laisse avancer
+        rb.linearVelocity = Vector2.zero;// On l'imobilise , fin du dash
+        yield return new WaitForSeconds(cooldownStunt); // On le stun qui si il était stun
         canMove = true;
         canDash = true;
     }

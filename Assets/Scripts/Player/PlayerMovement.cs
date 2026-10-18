@@ -15,7 +15,6 @@ public class PlayerMovement : MonoBehaviour
     public float jumpForce = 5f;
     public float gravity;
     private Vector2 direction;
-
     public bool isFacingRight;
     private bool isJumping;
     private Vector2 moveValue;
@@ -28,7 +27,7 @@ public class PlayerMovement : MonoBehaviour
     public float slipSpeed;
     private bool canDetectWall = true;
     private bool isAccroched;
-    private bool canMove = true;
+    [HideInInspector] public bool canMove = true;
     private bool canJump = true;
 
 
@@ -48,7 +47,7 @@ public class PlayerMovement : MonoBehaviour
     public GameObject groundCheckR;
     public GameObject wallCheckL;
     public GameObject wallCheckR;
-
+    private SpriteRenderer sr;
    
 
 
@@ -64,14 +63,11 @@ public class PlayerMovement : MonoBehaviour
     private void Start()
     {
         // Lie l'input system avec les variables du script
-        if (canMove)
-        {
-            move = InputSystem.actions.FindAction("Move");
-        }
-        if (canJump)
-        {
-            jump = InputSystem.actions.FindAction("Jump");
-        }
+
+        move = InputSystem.actions.FindAction("Move");
+
+        jump = InputSystem.actions.FindAction("Jump");
+
         
 
         // Lie les components avec les variables du script
@@ -79,6 +75,7 @@ public class PlayerMovement : MonoBehaviour
         col = GetComponent<Collider2D>();
         player = gameObject;
         isFacingRight = true;
+        sr = GetComponent<SpriteRenderer>();
 
     }
 
@@ -87,7 +84,6 @@ public class PlayerMovement : MonoBehaviour
         // Lie les valeurs de déplacement . Ex: si le joueur appuie sur A ou D ou bien Espace 
 
         moveValue = move.ReadValue<Vector2>();
-        jumpValue = jump.IsPressed();
 
         isGrounded = Physics2D.OverlapArea(groundCheckL.transform.position, groundCheckR.transform.position,jumpMask); // Regarde si la zone créée entre en contact avec le sol , si oui renvoie true
         if (isGrounded) 
@@ -124,27 +120,29 @@ public class PlayerMovement : MonoBehaviour
         // La vitesse dépend de la variable publique speed
         if (move.IsPressed() && canMove)
         {
-            rb.linearVelocity = new Vector2(direction.x * speed, rb.linearVelocity.y);
-            if (rb.linearVelocity.x > 0)
+            rb.linearVelocity = new Vector2(direction.x * speed, rb.linearVelocity.y);//Fais avancer le joueur
+            if (rb.linearVelocity.x > 0)// si le joueur va a droite 
             {
                 isFacingRight = true;
+                sr.flipX = false; // On le fait regarder à droite (visuellement)
             }
-            else if (rb.linearVelocity.x < 0)
+            else if (rb.linearVelocity.x < 0)// Si le joueur va a gauche
             {
                 isFacingRight = false;
+                sr.flipX = true;// On le fait regarder à gauche (visuellement)
             }
         }
-
+        move.canceled += context => { rb.linearVelocity = Vector2.zero; };
     }
 
     float CheckWall()
     {
-        RaycastHit2D left = Physics2D.Raycast(player.transform.position, Vector2.left, 3f, wallMask);
-        if (left.collider != null )
+        RaycastHit2D left = Physics2D.Raycast(player.transform.position, Vector2.left, 3f, wallMask); // On regarde si à gauche du joueur il y a un mur
+        if (left.collider != null ) // Si il y a un mur 
         {
             return 1;
         }
-        else if(left.collider == null)
+        else if(left.collider == null) // Si il y a pas de mur à gauche il y en a un a droite 
         {
             return -1;
         }
@@ -156,13 +154,21 @@ public class PlayerMovement : MonoBehaviour
     public void JumpPlayer(bool jumpValue)
     {
       
-            if (!isJumping && jumpValue == true && isGrounded)
+            if (!isJumping  && isGrounded)
             {
-                // Ajoute une force vers le haut pour faire sauter le perso 
-                // La force du saut / hauteur est fonction de la variable jumpForce
-                isJumping = true;
-                rb.linearVelocityY =0f;
-                rb.AddForce(new Vector2(0f, jumpForce * 100));
+                jump.started +=
+                context =>
+                {
+                    isJumping = true;
+                    rb.linearVelocityY = 0f;
+                    rb.AddForce(new Vector2(0f, jumpForce * 50)); // Ajoute une force vers le haut pour faire sauter le perso 
+                };
+
+                jump.canceled +=
+                context =>
+                {
+                    isJumping = false;
+                };
             }
             
             else if (isAgainstWall && !isGrounded ) // Si le joueur touche un mur et n'est pas au sol , on active la capacité walljump
@@ -187,27 +193,28 @@ public class PlayerMovement : MonoBehaviour
 
     private void WallJump()
     {
-        float wallSide = CheckWall();
+        float wallSide = CheckWall(); // On regarde de quel cote est le mur
 
         isJumping = true;
-        rb.linearVelocity = Vector2.zero;
+        rb.linearVelocity = Vector2.zero; // On l'imobilise
         rb.angularVelocity = 0f;
         rb.gravityScale = gravity; // remet la gravité standard
         isGrounded = false;
 
-        rb.AddForce(new Vector2(50f* jumpForce * wallSide, jumpForce * 100f));
+        rb.AddForce(new Vector2(50f* jumpForce * wallSide, jumpForce * 100f)); // On envoie le joueur en diagonal à droite ou a gauche selon le signe de wallside
 
         // Fais en sorte que le joueur soit concideré comme entrain de sauter et plu contre un mur pour pas qu'il bug
         isAgainstWall = false;
         isAccroched = false;
-        StartCoroutine(StopWallJump());
+        StartCoroutine(StopWallJump()); // On réinitialise l'état après un certain temps
     }
     IEnumerator StopWallJump()
     {
         canDetectWall = false;
         canMove = false;
-        yield return new WaitForSeconds(0.2f); // Un cooldown pour pas que le joueur se raccroche instantanement 
+        yield return new WaitForSeconds(0.2f); // Un cooldown pour pas que le joueur se raccroche instantanement et bouge 
         canDetectWall = true;
         canMove = true;
     }
+
 }

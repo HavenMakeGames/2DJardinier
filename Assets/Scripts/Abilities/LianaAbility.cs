@@ -66,7 +66,6 @@ public class LianaAbility : MonoBehaviour
             // Utilise un Raycast ("laser") pour simuler le grappin et detecter les collisions 
             RaycastHit2D hit = Physics2D.Raycast(playerPos, direction, maxLianaLenght, mask);// Limiter par la longueur maximale du grappin et un filtre pour ne pas s'accrocher à tout 
             Debug.DrawRay(playerPos + raycastOffset, direction * 10, Color.green, 2f); // Affiche le grappin temporaire 
-            Debug.Log(direction);
 
             // Si le grappin touche bel et bien un object valide 
             if (hit.collider != null)
