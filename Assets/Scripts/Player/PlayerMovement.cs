@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.Accessibility;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 using static UnityEditor.ShaderGraph.Internal.KeywordDependentCollection;
 
 public class PlayerMovement : MonoBehaviour
@@ -20,7 +21,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 moveValue;
     private float movingValue;
     private bool jumpValue;
-    private bool isGrounded;
+    [HideInInspector] public bool isGrounded;
     public LayerMask jumpMask;
     private bool isAgainstWall;
     public LayerMask wallMask;
@@ -29,8 +30,7 @@ public class PlayerMovement : MonoBehaviour
     private bool isAccroched;
     [HideInInspector] public bool canMove = true;
     private bool canJump = true;
-
-
+ 
 
     // Les Inputs des Actions 
     [Header("Actions")]
@@ -48,6 +48,7 @@ public class PlayerMovement : MonoBehaviour
     public GameObject wallCheckL;
     public GameObject wallCheckR;
     private SpriteRenderer sr;
+    private RecentsPosition rp;
    
 
 
@@ -63,11 +64,14 @@ public class PlayerMovement : MonoBehaviour
     private void Start()
     {
         // Lie l'input system avec les variables du script
-
-        move = InputSystem.actions.FindAction("Move");
-
-        jump = InputSystem.actions.FindAction("Jump");
-
+        if (canMove)
+        {
+            move = InputSystem.actions.FindAction("Move");
+        }
+        if (canJump)
+        {
+            jump = InputSystem.actions.FindAction("Jump");
+        }
         
 
         // Lie les components avec les variables du script
@@ -76,6 +80,7 @@ public class PlayerMovement : MonoBehaviour
         player = gameObject;
         isFacingRight = true;
         sr = GetComponent<SpriteRenderer>();
+        rp = GetComponent<RecentsPosition>();
 
     }
 
@@ -84,6 +89,7 @@ public class PlayerMovement : MonoBehaviour
         // Lie les valeurs de déplacement . Ex: si le joueur appuie sur A ou D ou bien Espace 
 
         moveValue = move.ReadValue<Vector2>();
+        jumpValue = jump.IsPressed();
 
         isGrounded = Physics2D.OverlapArea(groundCheckL.transform.position, groundCheckR.transform.position,jumpMask); // Regarde si la zone créée entre en contact avec le sol , si oui renvoie true
         if (isGrounded) 
@@ -132,7 +138,7 @@ public class PlayerMovement : MonoBehaviour
                 sr.flipX = true;// On le fait regarder à gauche (visuellement)
             }
         }
-        move.canceled += context => { rb.linearVelocity = Vector2.zero; };
+
     }
 
     float CheckWall()
@@ -154,21 +160,13 @@ public class PlayerMovement : MonoBehaviour
     public void JumpPlayer(bool jumpValue)
     {
       
-            if (!isJumping  && isGrounded)
+            if (!isJumping && jumpValue == true && isGrounded)
             {
-                jump.started +=
-                context =>
-                {
-                    isJumping = true;
-                    rb.linearVelocityY = 0f;
-                    rb.AddForce(new Vector2(0f, jumpForce * 50)); // Ajoute une force vers le haut pour faire sauter le perso 
-                };
-
-                jump.canceled +=
-                context =>
-                {
-                    isJumping = false;
-                };
+                // Ajoute une force vers le haut pour faire sauter le perso 
+                // La force du saut / hauteur est fonction de la variable jumpForce
+                isJumping = true;
+                rb.linearVelocityY =0f;
+                rb.AddForce(new Vector2(0f, jumpForce * 100));
             }
             
             else if (isAgainstWall && !isGrounded ) // Si le joueur touche un mur et n'est pas au sol , on active la capacité walljump
@@ -217,4 +215,9 @@ public class PlayerMovement : MonoBehaviour
         canMove = true;
     }
 
+    public void MoveToLastAvailablePos()
+    {
+        player.transform.position = rp.GetLastPos();
+    }
+    
 }

@@ -20,28 +20,30 @@ public class DamageManager : MonoBehaviour
     private GameObject latestPoint;
     private HashSet<bool> effects = new HashSet<bool> { };
     public float repulseForce;
+    private Vector2 startPos; 
 
 
     [Header("Components")]
-    private GameObject character;
+    private GameObject player;
     private SpriteRenderer sr;
     private PlayerMovement pmouv;
 
 
     private void Start()
     {
-        character = gameObject;
+        player = gameObject;
         pmouv = gameObject.GetComponent<PlayerMovement>();
         SetMaxHealth(health);  // On met max vie le perso (joueur ou npc)
         sr = GetComponent<SpriteRenderer>();
+        startPos = player.transform.position;
     }
 
     public void OnCollisionEnter2D(Collision2D collision) // Quand l'individu rentre en contact avec un individu qui peut lui mettre des dégats , il prend des dégats
     {
-        if (collision.collider.tag == "Enemy" && character.tag == "Player")
+        if (collision.collider.tag == "Enemy")
         {
-            GetPushedAway(character, collision.gameObject,repulseForce);
-            TakeDamage();
+            GetPushedAway(player, collision.gameObject,repulseForce);
+            TakeDamage(10);
         }
     }
     
@@ -49,42 +51,37 @@ public class DamageManager : MonoBehaviour
     {
         if (collision.gameObject.tag == "Spawn Point")
         {
-            if (character.tag== "Player")
-            {
-                latestPoint = collision.gameObject; // On enregistre le point de spawn
-            }
+            latestPoint = collision.gameObject ; // On enregistre le point de spawn
         }
     }
 
-    private void TakeDamage()
+    public void TakeDamage(int amout)
     {
         if (canTakeDamage == true) // Si le joueur n'est pas intangible 
         {
-            health = health - 10f; // Retire la vie du joueur 
+            health = health - amout; // Retire la vie du joueur 
+            healthSlider.value = health;
             if (health <= 0) // Si la vie du joueur arrive en dessous ou à 0 
             {
                 Die(); // Meurs  
             }
-            healthSlider.value = health;
-            StartCoroutine(DamageDelayTime(invicibilityTime)); // Execute l'intangebilite 
-
+            else
+            {
+                StartCoroutine(DamageDelayTime(invicibilityTime)); // Execute l'intangebilite 
+            }
         }
     }
 
     public void Die()
     {
-        if (latestPoint != null)
+        if ( latestPoint )
         {
-            character.transform.position = latestPoint.transform.position; // Teleporte le joueur au dernier point de réapparition
+            player.transform.position = latestPoint.transform.position; // Teleporte le joueur au dernier point de réapparition
         }
         else if (latestPoint == null) // Si le character n'est pas le joueur , il ne peut donc pas avoir de point de spawn donc il meure sans réapparaitre
         {
-            if (character.tag != "Player")
-            {
-                Destroy(character);
-            }
+            player.transform.position = startPos;
         }
-
         health = maxHealth;
         healthSlider.value = maxHealth; // On le remet full vie
     }
